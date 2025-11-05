@@ -1,0 +1,32 @@
+#cloud-config
+users:
+  - name: ${username}
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: docker,sudo
+    shell: /bin/bash
+    ssh_authorized_keys:
+      - ${ssh_authorized_key}
+
+disable_root: true
+ssh_pwauth: false
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+
+runcmd:
+  - [ sh, -c, "set -eux" ]
+  - [ sh, -c, "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh" ]
+  - [ sh, -c, "mkdir -p /etc/docker" ]
+  - [ sh, -c, "cat > /etc/docker/daemon.json <<'EOF'\n{ \"log-driver\": \"json-file\", \"log-opts\": { \"max-size\": \"10m\", \"max-file\": \"150\" } }\nEOF" ]
+  - [ sh, -c, "systemctl enable --now docker" ]
+  - [ sh, -c, "apt-get update && apt-get install -y docker-compose-plugin fail2ban unattended-upgrades" ]
+  - [ sh, -c, "ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw --force enable" ]
+  - [ sh, -c, "systemctl enable --now fail2ban" ]
+  - [ sh, -c, "dpkg-reconfigure -f noninteractive unattended-upgrades" ]
+  - [ sh, -c, "usermod -aG docker ${username}" ]
+
+final_message: "Cloud-init finished. Docker + basic hardening configured."
