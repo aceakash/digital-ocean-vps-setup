@@ -4,13 +4,21 @@ This folder contains a minimal, repeatable Terraform layout to provision a Digit
 
 Quickstart
 
+0. Create a digital ocean token (API key) with the following scopes:
+
+- droplet:all
+- domain:all
+- ssh_key:all
+- tag:all
+- firewall:all
+
 1. Export your DigitalOcean token and ensure you have a public SSH key at `~/.ssh/id_rsa.pub` (or override via `ssh_public_key_path`).
 
    ```bash
    export DIGITALOCEAN_TOKEN="<token>"
    terraform init
-   terraform plan -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
-   terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
+   terraform plan -var="ssh_public_key_path=$HOME/.ssh/iuntilfalse_id_rsa.pub" -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=untilfalse.com"
+   terraform apply -var="ssh_public_key_path=$HOME/.ssh/iuntilfalse_id_rsa.pub" -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=untilfalse.com"
    ```
 
 Notes
