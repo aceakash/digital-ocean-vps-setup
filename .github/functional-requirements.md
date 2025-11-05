@@ -7,8 +7,8 @@ Repeatable DigitalOcean VPS setup for personal containerized web apps behind Cad
 # Core Decisions (Locked)
 
 1. Docker + Docker Compose (v2).
-2. Reverse Proxy: Caddy (wildcard \*.untilfalse.com via DNS-01).
-3. TLS: DNS-01 only with DIGITALOCEAN_TOKEN; default renewal.
+2. Reverse proxy: Caddy — wildcard (*.untilfalse.com) certificate via DNS-01.
+3. TLS: DNS-01 only; Caddy uses DIGITALOCEAN_TOKEN to create TXT records and auto-renew.
 4. OS: Ubuntu 24.04 LTS.
 5. Provisioning: Terraform droplet + cloud-init bootstrap script.
 6. IPv6: Disabled.
@@ -23,7 +23,7 @@ Repeatable DigitalOcean VPS setup for personal containerized web apps behind Cad
     - fail2ban: enabled
     - unattended-upgrades: enabled
 12. Firewall: Inbound only 22, 80, 443.
-13. Logs: Docker json-file rotation (10m / 5 files).
+13. Logs: Docker json-file rotation (10m / 150 files).
 14. Deployment Workflow: GHCR + GitHub Actions build/push; Watchtower auto-update (300s, no stopped containers, prune yes; webhook deferred).
 15. Secrets Management: Hybrid (.env.example tracked + runtime .env ignored + GitHub Actions secrets for build-time injection).
 
