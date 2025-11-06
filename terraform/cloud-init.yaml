@@ -103,8 +103,7 @@ write_files:
       </head>
       <body>
         <h1>untilfalse.com</h1>
-        <p>Static landing page served by Caddy with DNS-01 TLS (DigitalOcean). Wildcard/host certificates are managed automatically.</p>
-        <p>Page provisioned automatically by cloud-init.</p>
+        <p>Static landing page</p>
       </body>
       </html>
 
