@@ -33,42 +33,52 @@ Directory: terraform/
 
 Files:
 
-- versions.tf (Terraform / provider constraints)
+Repeatable DigitalOcean VPS setup for personal containerized web apps behind Caddy. This repository now provisions only the infrastructure and a static Caddy landing page; application containers live in separate repositories and join a shared external Docker network (`proxy`).
 - providers.tf (DigitalOcean provider config)
 - variables.tf (token, region, size, domain, ssh key path)
 - locals.tf (name prefix, tags)
 - ssh.tf (SSH key resource)
+9. Initial Apps (in this repo): Caddy static site only. Application services are external and will be deployed separately.
 - droplet.tf (droplet + user_data template)
 - firewall.tf (ports 22,80,443 only)
+13. Logs: Docker json-file rotation (10m / 150 files) configured in daemon.json.
 - dns-records.tf (root domain + wildcard A record)
-- outputs.tf (droplet IP)
+15. Secrets Management: Hybrid (.env.example tracked + runtime .env ignored + GitHub Actions secrets for build-time injection). DO token currently passed via cloud-init for convenience; target state is post-provision manual placement of `/opt/caddy/.env`.
 - cloud-init.yaml (user creation, hardening, Docker install, log rotation)
 
 State: local (terraform.tfstate gitignored). Modular expansion deferred.
-
+Region: Default variable `lon1` (configurable via `var.region`).
 # Infrastructure Baseline
-
+Containers: 1 initial (Caddy). Future app containers deployed independently.
 - Region: AMS3
 - Droplet: Basic 1 vCPU / 512MB RAM
 - Bandwidth: Light (<250GB/mo)
-- Containers: 3 initial (2 apps + Caddy)
-- No databases/caches/volumes initially
-
-# Open Items
-
-1. Security headers (HSTS, CSP, etc.)
+1. Security headers (HSTS, CSP, etc.) — IMPLEMENTED in Caddyfile.
+2. Secret hygiene: remove token from user_data and adopt manual or managed secret provisioning.
+3. Observability expansion (metrics/log aggregation).
+4. Future stateful backup/restore policy.
+5. Watchtower webhook + event scope.
+6. CI workflow(s) for image build/publish & deployment.
+7. Secret classification (build-time vs runtime values list).
+8. Remote Terraform state backend.
 2. Observability expansion (metrics/log aggregation)
 3. Future stateful backup/restore policy
 4. Watchtower webhook + event scope
-5. CI workflow file specifics (caching, tagging, secret injection)
+Assumptions
+
+Wildcard DNS record points to droplet IP; DIGITALOCEAN_TOKEN has DNS write scope only; apps are stateless and will expose internal container names on the `proxy` network for Caddy reverse_proxy directives.
 6. Secret classification (build-time vs runtime values list)
 
 # Constraints
+Risks
 
+Low RAM; no resilience/backups; minimal monitoring; secrets still embedded in user_data (temporary); external app deployment consistency not yet codified; no remote state locking.
 Minimal moving parts; reproducible; upgradable path.
 
 # Assumptions
+Next Step
 
+Migrate DO token handling out of cloud-init and document manual secret placement procedure.
 Wildcard DNS record points to droplet IP; DIGITALOCEAN_TOKEN injected securely; apps stateless.
 
 # Risks
