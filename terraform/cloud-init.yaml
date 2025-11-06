@@ -42,7 +42,6 @@ write_files:
         }
       }
 
-      # Serve static landing page for both bare and www host (wildcard cert covers *.untilfalse.com)
       untilfalse.com, www.untilfalse.com {
         import header_common
         root * /srv/static
@@ -52,6 +51,9 @@ write_files:
         file_server
         respond /healthz 200
       }
+
+      # Import external app site snippets (including vocab)
+      import /opt/caddy/sites/*.caddy
 
   - path: /opt/caddy/docker-compose.yml
     permissions: '0644'
@@ -65,6 +67,7 @@ write_files:
           volumes:
             - /opt/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
             - /opt/caddy/site:/srv/static:ro
+            - /opt/caddy/sites:/opt/caddy/sites:ro
             - caddy_data:/data
             - caddy_config:/config
           ports:
@@ -72,6 +75,18 @@ write_files:
             - "443:443"
           networks:
             - proxy
+
+        vocab:
+          image: ghcr.io/aceakash/vocab:0.1.0
+          container_name: vocab
+          restart: unless-stopped
+          networks:
+            - proxy
+          environment:
+            APP_LOG_LEVEL: info
+          labels:
+            com.centurylinklabs.watchtower.enable: "true"
+
       networks:
         proxy:
           name: proxy
@@ -107,6 +122,25 @@ write_files:
       </body>
       </html>
 
+  - path: /opt/caddy/sites/vocab.caddy
+    permissions: '0644'
+    content: |
+      vocab.untilfalse.com {
+          encode zstd gzip
+          header {
+              Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+              X-Content-Type-Options "nosniff"
+              X-Frame-Options "DENY"
+              Referrer-Policy "strict-origin-when-cross-origin"
+              Content-Security-Policy "default-src 'self';"
+          }
+          reverse_proxy vocab:8080
+          log {
+              output file /var/log/caddy/vocab.access.log
+              format json
+          }
+      }
+
   - path: /usr/local/bin/caddy-compose-up.sh
     permissions: '0755'
     content: |
@@ -116,7 +150,7 @@ write_files:
         echo "[caddy-compose-up] /opt/caddy/.env missing; skipping start."
         exit 0
       fi
-      echo "[caddy-compose-up] Starting Caddy compose stack..."
+      echo "[caddy-compose-up] Starting Caddy + vocab compose stack..."
       /usr/bin/docker compose -f /opt/caddy/docker-compose.yml up -d
       /usr/bin/docker logs caddy | head -n 40 || true
 
