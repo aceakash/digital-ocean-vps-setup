@@ -45,11 +45,6 @@ variable "name_prefix" {
   default     = "do-vps"
 }
 
-variable "caddy_image" {
-  description = "Prebuilt Caddy image with DO DNS module"
-  type        = string
-  default     = "ghcr.io/aceakash/caddy-digitalocean:2.10.0"
-}
 
 variable "username" {
   description = "Login username provisioned by cloud-init"

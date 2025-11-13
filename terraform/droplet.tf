@@ -12,7 +12,6 @@ resource "digitalocean_droplet" "vps" {
     ssh_authorized_key = file(var.ssh_public_key_path)
     username           = var.username
     digitalocean_token = var.digitalocean_token
-    caddy_image        = var.caddy_image
   })
 
   tags = [var.name_prefix]
