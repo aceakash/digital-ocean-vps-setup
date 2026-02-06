@@ -1,4 +1,3 @@
-resource "digitalocean_ssh_key" "default" {
-  name       = "${var.name_prefix}-key"
-  public_key = file(var.ssh_public_key_path)
+data "digitalocean_ssh_key" "default" {
+  name = var.ssh_key_name
 }

@@ -22,10 +22,9 @@ variable "image" {
   default     = "ubuntu-24-04-x64"
 }
 
-variable "ssh_public_key_path" {
-  description = "Path to the public SSH key to upload to the droplet"
+variable "ssh_key_name" {
+  description = "Name of an existing SSH key in your DigitalOcean account"
   type        = string
-  default     = "~/.ssh/id_ed25519.pub"
 }
 
 variable "domain" {

@@ -4,12 +4,12 @@ resource "digitalocean_droplet" "vps" {
   size   = var.size
   image  = var.image
 
-  ssh_keys = [digitalocean_ssh_key.default.fingerprint]
+  ssh_keys = [data.digitalocean_ssh_key.default.fingerprint]
 
   ipv6 = false
 
   user_data = templatefile("${path.module}/cloud-init.yaml", {
-    ssh_authorized_key = file(var.ssh_public_key_path)
+    ssh_authorized_key = data.digitalocean_ssh_key.default.public_key
     username           = var.username
     digitalocean_token = var.digitalocean_token
     caddy_image        = var.caddy_image
