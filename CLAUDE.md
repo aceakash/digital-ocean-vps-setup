@@ -54,7 +54,7 @@ GitHub Actions workflow (`.github/workflows/terraform-validate.yml`) runs `fmt -
 - **Cloud-init edits trigger droplet replacement** — always review the plan before apply.
 - **Cloud-init commands must be idempotent**. Use heredocs for multi-line configs.
 - **Secrets**: DO token is marked `sensitive` in `variables.tf`. Currently embedded in user_data for convenience; target state is manual `/opt/caddy/.env` placement post-provision.
-- **Naming**: `var.name_prefix` is used consistently; only the droplet appends a UUID suffix (new name each apply = replacement).
+- **Naming**: `var.name_prefix` is used consistently for all resource names.
 - **New variables**: add to `variables.tf`, reference in resources, document in copilot instructions.
 - **Version pins**: Terraform >= 1.5.0, DO provider ~> 2.24 (see `versions.tf`). Bumps require `terraform init -upgrade`.
 - Always confirm with the user before making changes. Make small, incremental changes.
