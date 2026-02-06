@@ -1,0 +1,8 @@
+# Required — copy to terraform.tfvars and fill in values
+digitalocean_token = ""
+domain             = "example.com"
+
+# Optional — uncomment to override defaults
+# ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+# region              = "lon1"
+# size                = "s-1vcpu-512mb-10gb"

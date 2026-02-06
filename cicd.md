@@ -7,7 +7,7 @@ Reusable CI/CD pattern for deploying a containerized app behind Caddy on the dro
 | Placeholder | Example | Description |
 |---|---|---|
 | `<app>` | `vocab` | Short app name (used in service, file names) |
-| `<app>.untilfalse.com` | `vocab.untilfalse.com` | Subdomain |
+| `<app>.example.com` | `vocab.example.com` | Subdomain |
 | `<org>/<app>` | `aceakash/vocab` | GHCR image path |
 | `<version>` | `0.1.0` | Semver tag |
 | `<internal-port>` | `8080` | Port the container listens on |
@@ -31,7 +31,7 @@ Reusable CI/CD pattern for deploying a containerized app behind Caddy on the dro
 ## Caddy Site Snippet (`/opt/caddy/sites/<app>.caddy`)
 
 ```caddy
-<app>.untilfalse.com {
+<app>.example.com {
     encode zstd gzip
     header {
         Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
@@ -102,7 +102,7 @@ jobs:
       - name: Generate site snippet
         run: |
           cat > <app>.caddy <<'EOF'
-          <app>.untilfalse.com {
+          <app>.example.com {
               encode zstd gzip
               header {
                   Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
@@ -156,7 +156,7 @@ jobs:
             sudo docker compose pull <app> || true
             sudo docker compose up -d <app>
             sudo docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile || sudo docker compose restart caddy
-            curl -fsS https://<app>.untilfalse.com/health || echo "Health endpoint failed."
+            curl -fsS https://<app>.example.com/health || echo "Health endpoint failed."
 ```
 
 ## Health Check

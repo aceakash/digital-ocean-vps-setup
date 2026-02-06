@@ -23,7 +23,7 @@ write_files:
     content: |
       {
         acme_dns digitalocean ${digitalocean_token}
-        email admin@untilfalse.com
+        email admin@${domain}
         storage file_system /data
         log {
           level INFO
@@ -42,7 +42,7 @@ write_files:
         }
       }
 
-      untilfalse.com, www.untilfalse.com {
+      ${domain}, www.${domain} {
         import header_common
         root * /srv/static
         encode gzip zstd
@@ -107,7 +107,7 @@ write_files:
       <html lang="en">
       <head>
         <meta charset="utf-8" />
-        <title>untilfalse.com</title>
+        <title>${domain}</title>
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <meta http-equiv="Content-Security-Policy" content="default-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; upgrade-insecure-requests">
         <style>
@@ -117,7 +117,7 @@ write_files:
         </style>
       </head>
       <body>
-        <h1>untilfalse.com</h1>
+        <h1>${domain}</h1>
         <p>Static landing page</p>
       </body>
       </html>
@@ -125,7 +125,7 @@ write_files:
   - path: /opt/caddy/sites/vocab.caddy
     permissions: '0644'
     content: |
-      vocab.untilfalse.com {
+      vocab.${domain} {
           encode zstd gzip
           header {
               Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"

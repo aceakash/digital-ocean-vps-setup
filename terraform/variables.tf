@@ -25,11 +25,11 @@ variable "image" {
 variable "ssh_public_key_path" {
   description = "Path to the public SSH key to upload to the droplet"
   type        = string
-  default     = "~/.ssh/id_rsa.pub"
+  default     = "~/.ssh/id_ed25519.pub"
 }
 
 variable "domain" {
-  description = "Root domain to create records for (example: untilfalse.com)"
+  description = "Root domain to create records for (example: example.com)"
   type        = string
 }
 

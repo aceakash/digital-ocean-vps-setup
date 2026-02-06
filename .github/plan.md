@@ -7,8 +7,8 @@ This file captures the current repository state, what is implemented, and the pr
 - Terraform root module provisions a single DigitalOcean droplet + DNS A records (root + wildcard) + firewall + SSH key.
   - `terraform/*` files: versions, providers, variables, locals, ssh, droplet, firewall, dns-records, outputs.
   - `terraform/cloud-init.yaml`: creates user `akash`; installs Docker & compose plugin, fail2ban, unattended-upgrades; sets Docker json-file log rotation; enables UFW (22/80/443); writes Caddy assets (`/opt/caddy/Caddyfile`, `/opt/caddy/docker-compose.yml`, static `index.html`, `/opt/caddy/sites/vocab.caddy`); installs systemd `caddy-compose.service` (Type=simple, Restart=on-failure) and helper script `/usr/local/bin/caddy-compose-up.sh`.
-  - Caddy serves `untilfalse.com` and `www.untilfalse.com` with security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) and wildcard DNS-01 issuance via DigitalOcean token.
-  - Vocab app (`ghcr.io/aceakash/vocab:0.1.0`) deployed as a compose service with Caddy site snippet at `vocab.untilfalse.com`.
+  - Caddy serves `example.com` and `www.example.com` with security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) and wildcard DNS-01 issuance via DigitalOcean token.
+  - Vocab app (`ghcr.io/aceakash/vocab:0.1.0`) deployed as a compose service with Caddy site snippet at `vocab.example.com`.
 - `caddy-digitalocean-docker/Dockerfile`: multi-stage build of Caddy v2.10.0 with DO DNS plugin, published as multi-arch image to GHCR.
 - `.github/workflows/terraform-validate.yml` validates fmt + config.
 - `.gitignore` excludes local Terraform state & artifacts.
@@ -27,11 +27,11 @@ export DIGITALOCEAN_TOKEN="<your_do_token>"
 cd terraform
 terraform init
 terraform validate
-terraform plan -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=untilfalse.com"
-terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=untilfalse.com"
+terraform plan -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
+terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
 ```
 
-After apply (on droplet): Caddy auto-starts via systemd; check `docker ps`, `docker logs caddy` and visit https://www.untilfalse.com.
+After apply (on droplet): Caddy auto-starts via systemd; check `docker ps`, `docker logs caddy` and visit https://www.example.com.
 
 ## Recommended next steps (priority)
 

@@ -33,13 +33,13 @@ terraform fmt -recursive
 # Plan
 export DIGITALOCEAN_TOKEN="<token>"
 terraform init
-terraform plan -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=untilfalse.com"
+terraform plan -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
 
 # Apply
-terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=untilfalse.com"
+terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
 
 # Destroy
-terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=untilfalse.com"
+terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
 ```
 
 Alternative: set `TF_VAR_digitalocean_token` and `TF_VAR_domain` environment variables to skip `-var` flags.

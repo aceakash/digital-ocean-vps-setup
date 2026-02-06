@@ -7,7 +7,7 @@ Repeatable DigitalOcean VPS setup for personal containerized web apps behind Cad
 # Core Decisions (Locked)
 
 1. Docker + Docker Compose (v2).
-2. Reverse proxy: Caddy — wildcard (*.untilfalse.com) certificate via DNS-01.
+2. Reverse proxy: Caddy — wildcard (*.example.com) certificate via DNS-01.
 3. TLS: DNS-01 only; Caddy uses DIGITALOCEAN_TOKEN to create TXT records and auto-renew.
 4. OS: Ubuntu 24.04 LTS.
 5. Provisioning: Terraform droplet + cloud-init bootstrap script.

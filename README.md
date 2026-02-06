@@ -5,7 +5,7 @@ Terraform configuration that provisions a single DigitalOcean droplet running co
 ## What gets provisioned
 
 - **Droplet** — Ubuntu 24.04, hardened via cloud-init (non-root user, fail2ban, UFW, unattended upgrades, Docker + Compose)
-- **DNS** — A record for the apex domain + wildcard record (e.g. `*.untilfalse.com`)
+- **DNS** — A record for the apex domain + wildcard record (e.g. `*.example.com`)
 - **Firewall** — inbound 22, 80, 443 only
 - **Caddy** — reverse proxy with automatic wildcard certs, serving a static landing page and the vocab app
 - **Systemd unit** — `caddy-compose.service` starts the Docker Compose stack on boot
@@ -17,30 +17,50 @@ Cloud-init is idempotent. All Caddy assets live under `/opt/caddy/` on the dropl
 You must provide these two variables (everything else has sensible defaults — see `terraform/variables.tf`):
 
 - `digitalocean_token` — DO API token with DNS write + droplet create permissions (sensitive)
-- `domain` — apex domain to create records for (e.g. `untilfalse.com`)
+- `domain` — apex domain to create records for (e.g. `example.com`)
 
 ## Quickstart
 
 ```bash
 cd terraform
-export DIGITALOCEAN_TOKEN="<token>"
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your token and domain
 
 terraform init
-terraform plan \
-  -var="digitalocean_token=$DIGITALOCEAN_TOKEN" \
-  -var="domain=untilfalse.com"
-
-terraform apply \
-  -var="digitalocean_token=$DIGITALOCEAN_TOKEN" \
-  -var="domain=untilfalse.com"
+terraform plan
+terraform apply
 ```
 
-Tip: set `TF_VAR_digitalocean_token` and `TF_VAR_domain` as environment variables to skip the `-var` flags.
-
-After apply, check outputs:
+Or pass variables directly:
 
 ```bash
-terraform output -raw droplet_ip
+export DIGITALOCEAN_TOKEN="<token>"
+terraform plan \
+  -var="digitalocean_token=$DIGITALOCEAN_TOKEN" \
+  -var="domain=example.com"
+```
+
+**Important:** Changing `cloud-init.yaml` or any input that affects user_data will replace the droplet, destroying all runtime state (Docker volumes, certificates, manually-added apps).
+
+### After apply
+
+Cloud-init takes 3-5 minutes to finish after the droplet is created. Wait for it to complete before checking the site:
+
+```bash
+IP=$(terraform output -raw droplet_ip)
+ssh akash@$IP cloud-init status --wait
+```
+
+Once cloud-init finishes, verify the site:
+
+```bash
+curl -I https://example.com
+```
+
+If something goes wrong, check cloud-init logs:
+
+```bash
+ssh akash@$IP sudo cat /var/log/cloud-init-output.log
 ```
 
 ## Validating changes
@@ -78,7 +98,7 @@ docker exec caddy caddy renew --force
 cd terraform
 terraform destroy \
   -var="digitalocean_token=$DIGITALOCEAN_TOKEN" \
-  -var="domain=untilfalse.com"
+  -var="domain=example.com"
 ```
 
 ## Adding a new app

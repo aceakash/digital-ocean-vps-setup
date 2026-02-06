@@ -13,6 +13,7 @@ resource "digitalocean_droplet" "vps" {
     username           = var.username
     digitalocean_token = var.digitalocean_token
     caddy_image        = var.caddy_image
+    domain             = var.domain
   })
 
   tags = [var.name_prefix]
