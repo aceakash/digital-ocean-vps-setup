@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Read and follow `docs/instructions.md`** — it contains guardrails, workflow rules, and process conventions that apply to every interaction.
+
 ## Project Purpose
 
 Repeatable Terraform setup for a single DigitalOcean droplet hosting personal containerized web apps behind Caddy with wildcard TLS (DNS-01 via DigitalOcean). Application containers live in separate repos and connect to a shared Docker network (`proxy`).
