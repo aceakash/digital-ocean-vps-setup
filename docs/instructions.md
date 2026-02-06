@@ -46,7 +46,7 @@ For a PoC, also consider:
 ### Planning
 
 1. Before implementing a change, review the blast radius — especially whether it triggers droplet replacement.
-2. After agreeing on an implementation plan, update the GitHub issue with the plan.
+2. Every task must have a GitHub issue. Create one if it doesn't exist, and write the plan to it before starting work. Update the issue with progress as you go.
 3. When a change involves cloud-init, identify whether it can be applied in-place on the droplet or requires a full reprovision.
 4. During planning, explicitly identify decisions that will be hard to change later (e.g., network topology, DNS structure, secret management approach). Flag these for deliberate review.
 
