@@ -52,7 +52,7 @@ write_files:
         respond /healthz 200
       }
 
-      # Import external app site snippets (including vocab)
+      # Import external app site snippets
       import /opt/caddy/sites/*.caddy
 
   - path: /opt/caddy/docker-compose.yml
@@ -75,17 +75,6 @@ write_files:
             - "443:443"
           networks:
             - proxy
-
-        vocab:
-          image: ghcr.io/aceakash/vocab:0.1.0
-          container_name: vocab
-          restart: unless-stopped
-          networks:
-            - proxy
-          environment:
-            APP_LOG_LEVEL: info
-          labels:
-            com.centurylinklabs.watchtower.enable: "true"
 
       networks:
         proxy:
@@ -122,25 +111,6 @@ write_files:
       </body>
       </html>
 
-  - path: /opt/caddy/sites/vocab.caddy
-    permissions: '0644'
-    content: |
-      vocab.${domain} {
-          encode zstd gzip
-          header {
-              Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-              X-Content-Type-Options "nosniff"
-              X-Frame-Options "DENY"
-              Referrer-Policy "strict-origin-when-cross-origin"
-              Content-Security-Policy "default-src 'self';"
-          }
-          reverse_proxy vocab:8080
-          log {
-              output file /var/log/caddy/vocab.access.log
-              format json
-          }
-      }
-
   - path: /usr/local/bin/caddy-compose-up.sh
     permissions: '0755'
     content: |
@@ -150,7 +120,7 @@ write_files:
         echo "[caddy-compose-up] /opt/caddy/.env missing; refusing to start."
         exit 1
       fi
-      echo "[caddy-compose-up] Starting Caddy + vocab compose stack..."
+      echo "[caddy-compose-up] Starting Caddy compose stack..."
       /usr/bin/docker compose -f /opt/caddy/docker-compose.yml up -d
       /usr/bin/docker logs caddy | head -n 40 || true
 

@@ -7,7 +7,7 @@ Terraform configuration that provisions a single DigitalOcean droplet running co
 - **Droplet** — Ubuntu 24.04, hardened via cloud-init (non-root user, fail2ban, UFW, unattended upgrades, Docker + Compose)
 - **DNS** — A record for the apex domain + wildcard record (e.g. `*.example.com`)
 - **Firewall** — inbound 22, 80, 443 only
-- **Caddy** — reverse proxy with automatic wildcard certs, serving a static landing page and the vocab app
+- **Caddy** — reverse proxy with automatic wildcard certs, serving a static landing page
 - **Systemd unit** — `caddy-compose.service` starts the Docker Compose stack on boot
 
 Cloud-init is idempotent. All Caddy assets live under `/opt/caddy/` on the droplet.
@@ -103,11 +103,6 @@ terraform destroy \
 
 ## Adding a new app
 
-Wildcard DNS is already in place, so new subdomains don't require Terraform changes. To deploy a new app:
+Wildcard DNS is already in place, so new subdomains don't require Terraform changes. Each app gets its own compose file under `/opt/apps/<app>/` and a Caddy site snippet in `/opt/caddy/sites/<app>.caddy`.
 
-1. Add a service to `/opt/caddy/docker-compose.yml` on the `proxy` network
-2. Add a Caddy site snippet to `/opt/caddy/sites/<app>.caddy`
-3. `docker compose pull <app> && docker compose up -d <app>`
-4. Reload Caddy: `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile`
-
-See `cicd.md` for the full GitHub Actions deployment pattern.
+See `cicd.md` for the complete deployment guide, including SSH setup, templates, and a GitHub Actions workflow you can copy into your app repo.

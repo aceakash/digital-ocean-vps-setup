@@ -10,11 +10,11 @@ Repeatable Terraform setup for a single DigitalOcean droplet hosting personal co
 
 ## Architecture
 
-Single Terraform root module (`terraform/`) provisions: Ubuntu 24.04 droplet, DNS A + wildcard records, DO firewall (22/80/443), SSH key. Cloud-init (`cloud-init.yaml`) bootstraps the droplet with user `akash`, Docker + compose plugin, fail2ban, UFW, unattended upgrades, Docker log rotation (json-file), and a Caddy static site + vocab app managed via systemd unit (`caddy-compose.service`, Type=simple, Restart=on-failure).
+Single Terraform root module (`terraform/`) provisions: Ubuntu 24.04 droplet, DNS A + wildcard records, DO firewall (22/80/443), SSH key. Cloud-init (`cloud-init.yaml`) bootstraps the droplet with user `akash`, Docker + compose plugin, fail2ban, UFW, unattended upgrades, Docker log rotation (json-file), and a Caddy static site managed via systemd unit (`caddy-compose.service`, Type=simple, Restart=on-failure).
 
 A custom Caddy image with the DigitalOcean DNS plugin is built from `caddy-digitalocean-docker/Dockerfile` and published to GHCR as a multi-arch image.
 
-External apps are added by appending a service to `/opt/caddy/docker-compose.yml` and a Caddy site snippet, then reloading Caddy (no Terraform changes needed thanks to wildcard DNS).
+External apps are deployed independently to `/opt/apps/<app>/` with their own compose files joining the shared `proxy` network, plus a Caddy site snippet in `/opt/caddy/sites/`. No Terraform changes needed thanks to wildcard DNS. See `cicd.md` for the full deployment guide.
 
 ## Common Commands
 

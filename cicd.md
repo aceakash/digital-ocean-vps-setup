@@ -1,34 +1,68 @@
-# GitHub Actions Deployment Pattern
+# Deploying an App to the Droplet
 
-Reusable CI/CD pattern for deploying a containerized app behind Caddy on the droplet. Copy this to your app repo and substitute placeholders.
+Complete guide for deploying a containerized app behind Caddy on the droplet. Each app gets its own compose file under `/opt/apps/<app>/` and a Caddy site snippet for routing.
 
-## Placeholders
+## 1. Prerequisites
 
-| Placeholder | Example | Description |
-|---|---|---|
-| `<app>` | `vocab` | Short app name (used in service, file names) |
-| `<app>.example.com` | `vocab.example.com` | Subdomain |
-| `<org>/<app>` | `aceakash/vocab` | GHCR image path |
-| `<version>` | `0.1.0` | Semver tag |
-| `<internal-port>` | `8080` | Port the container listens on |
+Before deploying an app, you need:
 
-## Goals
+- **Droplet running** — provisioned via `terraform apply` (see README)
+- **SSH access** — you can SSH into the droplet as `akash`
+- **Container image** — your app image is pushed to GHCR (or another registry)
+- **Wildcard DNS** — already configured by Terraform (`*.example.com`)
 
-- Build & push image to GHCR.
-- Upload Caddy site snippet for the subdomain.
-- Ensure service exists in docker-compose.
-- Pull and run updated container.
-- Reload Caddy for new routing.
-- Keep process idempotent.
+## 2. What your app repo needs
 
-## Required Repository Secrets
+- `Dockerfile` — builds your app image
+- `.github/workflows/deploy.yml` — GitHub Actions workflow (template below)
+- **Repository secrets** — SSH key and droplet connection details
 
-- `DROPLET_HOST` — Droplet IPv4.
-- `DROPLET_USER` — `akash`
-- `DROPLET_SSH_KEY` — Private key (PEM). Use a deploy key with least privilege.
-- `GHCR_PAT` — Personal access token with `read:packages` (and `write:packages` if building here).
+## 3. Droplet layout
 
-## Caddy Site Snippet (`/opt/caddy/sites/<app>.caddy`)
+```
+/opt/caddy/                  # Platform (managed by cloud-init)
+├── Caddyfile                # Main Caddy config
+├── docker-compose.yml       # Caddy service only
+├── .env                     # DO token for DNS-01
+├── site/index.html          # Static landing page
+└── sites/                   # App Caddy snippets (*.caddy)
+    └── myapp.caddy          # ← deployed by app pipeline
+
+/opt/apps/                   # App deployments (one dir per app)
+└── myapp/
+    └── docker-compose.yml   # ← deployed by app pipeline
+```
+
+Platform files under `/opt/caddy/` are managed by Terraform/cloud-init. App pipelines only write to `/opt/apps/<app>/` and `/opt/caddy/sites/<app>.caddy`.
+
+## 4. SSH access setup
+
+Each app repo needs a deploy key to SSH into the droplet.
+
+1. Generate a key pair (on your local machine):
+
+   ```bash
+   ssh-keygen -t ed25519 -f deploy_key_myapp -C "deploy-myapp" -N ""
+   ```
+
+2. Add the **public** key to the droplet:
+
+   ```bash
+   ssh akash@<droplet-ip> 'cat >> ~/.ssh/authorized_keys' < deploy_key_myapp.pub
+   ```
+
+3. Add the **private** key as a repository secret named `DROPLET_SSH_KEY` in your app's GitHub repo.
+
+4. Add these additional repository secrets:
+
+   | Secret | Value |
+   |---|---|
+   | `DROPLET_HOST` | Droplet IPv4 address |
+   | `DROPLET_USER` | `akash` |
+
+## 5. Caddy snippet template
+
+Create `<app>.caddy` with your app's subdomain and internal port:
 
 ```caddy
 <app>.example.com {
@@ -48,22 +82,42 @@ Reusable CI/CD pattern for deploying a containerized app behind Caddy on the dro
 }
 ```
 
-## docker-compose.yml Service Block (append if missing)
+Replace `<app>`, `example.com`, and `<internal-port>` with your values.
+
+## 6. docker-compose.yml template
+
+Each app gets its own compose file at `/opt/apps/<app>/docker-compose.yml`:
 
 ```yaml
-<app>:
-  image: ghcr.io/<org>/<app>:<version>
-  container_name: <app>
-  restart: unless-stopped
-  networks:
-    - proxy
-  environment:
-    APP_LOG_LEVEL: info
-  labels:
-    com.centurylinklabs.watchtower.enable: "true"
+services:
+  <app>:
+    image: ghcr.io/<org>/<app>:<tag>
+    container_name: <app>
+    restart: unless-stopped
+    networks:
+      - proxy
+    environment:
+      APP_LOG_LEVEL: info
+
+networks:
+  proxy:
+    external: true
 ```
 
-## Example Workflow (app repo)
+Key points:
+- The `proxy` network is declared as `external: true` — it's created by the platform's Caddy compose file
+- The container name must match what the Caddy snippet uses in `reverse_proxy`
+
+## 7. GitHub Actions workflow template
+
+Copy this to `.github/workflows/deploy.yml` in your app repo and replace the placeholders:
+
+| Placeholder | Example | Description |
+|---|---|---|
+| `<app>` | `vocab` | Short app name |
+| `<org>` | `aceakash` | GitHub org/user |
+| `<internal-port>` | `8080` | Port the container listens on |
+| `example.com` | `example.com` | Your domain |
 
 ```yaml
 name: Deploy <app>
@@ -76,57 +130,33 @@ on:
       - "src/**"
   workflow_dispatch:
 
+env:
+  IMAGE: ghcr.io/<org>/<app>
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
-      - name: Login GHCR
-        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Set tags
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push
         run: |
-          echo "IMAGE_SHA=ghcr.io/<org>/<app>:${{ github.sha }}" >> $GITHUB_ENV
-          echo "IMAGE_SEMVER=ghcr.io/<org>/<app>:<version>" >> $GITHUB_ENV
-      - name: Build
-        run: docker build -t $IMAGE_SHA -t $IMAGE_SEMVER .
-      - name: Push
-        run: |
-          docker push $IMAGE_SHA
-          docker push $IMAGE_SEMVER
+          docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest .
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     concurrency: <app>-deploy
     steps:
-      - name: Generate site snippet
-        run: |
-          cat > <app>.caddy <<'EOF'
-          <app>.example.com {
-              encode zstd gzip
-              header {
-                  Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-                  X-Content-Type-Options "nosniff"
-                  X-Frame-Options "DENY"
-                  Referrer-Policy "strict-origin-when-cross-origin"
-                  Content-Security-Policy "default-src 'self';"
-              }
-              reverse_proxy <app>:<internal-port>
-              log {
-                  output file /var/log/caddy/<app>.access.log
-                  format json
-              }
-          }
-          EOF
-      - name: Upload site file
-        uses: appleboy/scp-action@v0.2.4
-        with:
-          host: ${{ secrets.DROPLET_HOST }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
-          source: "<app>.caddy"
-          target: "/opt/caddy/sites/"
-      - name: Remote deploy
+      - name: Deploy to droplet
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DROPLET_HOST }}
@@ -134,45 +164,102 @@ jobs:
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
             set -e
-            cd /opt/caddy
-            sudo mkdir -p sites
-            # Ensure import directive exists
-            grep -q '/opt/caddy/sites/*.caddy' Caddyfile || echo 'import /opt/caddy/sites/*.caddy' | sudo tee -a Caddyfile
-            # Add service if missing
-            if ! grep -q '^<app>:' docker-compose.yml; then
-              sudo tee -a docker-compose.yml >/dev/null <<'YML'
+
+            # Create app directory
+            sudo mkdir -p /opt/apps/<app>
+            sudo mkdir -p /opt/caddy/sites
+
+            # Write docker-compose.yml
+            sudo tee /opt/apps/<app>/docker-compose.yml > /dev/null <<'COMPOSE'
+            services:
               <app>:
-                image: ghcr.io/<org>/<app>:<version>
+                image: ghcr.io/<org>/<app>:latest
                 container_name: <app>
                 restart: unless-stopped
                 networks:
                   - proxy
                 environment:
                   APP_LOG_LEVEL: info
-                labels:
-                  com.centurylinklabs.watchtower.enable: "true"
-              YML
-            fi
-            sudo docker compose pull <app> || true
-            sudo docker compose up -d <app>
-            sudo docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile || sudo docker compose restart caddy
-            curl -fsS https://<app>.example.com/health || echo "Health endpoint failed."
+
+            networks:
+              proxy:
+                external: true
+            COMPOSE
+
+            # Write Caddy site snippet
+            sudo tee /opt/caddy/sites/<app>.caddy > /dev/null <<'CADDY'
+            <app>.example.com {
+                encode zstd gzip
+                header {
+                    Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+                    X-Content-Type-Options "nosniff"
+                    X-Frame-Options "DENY"
+                    Referrer-Policy "strict-origin-when-cross-origin"
+                    Content-Security-Policy "default-src 'self';"
+                }
+                reverse_proxy <app>:<internal-port>
+                log {
+                    output file /var/log/caddy/<app>.access.log
+                    format json
+                }
+            }
+            CADDY
+
+            # Pull and start the app
+            sudo docker compose -f /opt/apps/<app>/docker-compose.yml pull
+            sudo docker compose -f /opt/apps/<app>/docker-compose.yml up -d
+
+            # Reload Caddy to pick up the new site snippet
+            sudo docker compose -f /opt/caddy/docker-compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
+
+            # Health check
+            sleep 5
+            curl -fsS https://<app>.example.com/health || echo "Health check failed — verify manually."
 ```
 
-## Health Check
+## 8. Health check
 
-- Prefer `/health` returning 200.
-- Extend workflow to fail job if curl returns non-zero after retries.
+- Your app should expose a `/health` endpoint returning HTTP 200.
+- The workflow does a basic `curl` check after deploy. For production, add retries:
 
-## Rollback
+  ```bash
+  for i in 1 2 3 4 5; do
+    curl -fsS https://<app>.example.com/health && break
+    sleep 5
+  done
+  ```
 
-- Re-run deploy with previous semver tag.
-- To remove route: delete `<app>.caddy` and reload Caddy.
-- To remove container: `docker compose rm -f <app>`.
+## 9. Rollback
 
-## Future Enhancements
+To roll back to a previous version:
 
-- Add Watchtower notifications.
-- Add structured log shipping.
-- Pin digest tags (`image@sha256:...`).
-- Use caddy-docker-proxy to eliminate manual file writes (requires base change).
+1. Update the image tag in `/opt/apps/<app>/docker-compose.yml` to the previous SHA or version.
+2. Pull and restart:
+
+   ```bash
+   sudo docker compose -f /opt/apps/<app>/docker-compose.yml pull
+   sudo docker compose -f /opt/apps/<app>/docker-compose.yml up -d
+   ```
+
+Or re-run the GitHub Actions workflow for the previous commit.
+
+## 10. Removing an app
+
+1. Stop and remove the container:
+
+   ```bash
+   sudo docker compose -f /opt/apps/<app>/docker-compose.yml down
+   ```
+
+2. Remove the Caddy snippet and reload:
+
+   ```bash
+   sudo rm /opt/caddy/sites/<app>.caddy
+   sudo docker compose -f /opt/caddy/docker-compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
+   ```
+
+3. Clean up the app directory:
+
+   ```bash
+   sudo rm -rf /opt/apps/<app>
+   ```
