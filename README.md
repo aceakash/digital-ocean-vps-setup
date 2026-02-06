@@ -1,90 +1,93 @@
-# Terraform layout
+# DigitalOcean VPS Setup
 
-This folder contains a minimal, repeatable Terraform layout to provision a DigitalOcean droplet and baseline resources according to the project's functional requirements[.github/functional-requirements.md].
+Terraform configuration that provisions a single DigitalOcean droplet running containerized web apps behind Caddy with wildcard TLS (DNS-01).
 
-## Architecture (summary)
+## What gets provisioned
 
-Resources:
+- **Droplet** — Ubuntu 24.04, hardened via cloud-init (non-root user, fail2ban, UFW, unattended upgrades, Docker + Compose)
+- **DNS** — A record for the apex domain + wildcard record (e.g. `*.untilfalse.com`)
+- **Firewall** — inbound 22, 80, 443 only
+- **Caddy** — reverse proxy with automatic wildcard certs, serving a static landing page and the vocab app
+- **Systemd unit** — `caddy-compose.service` starts the Docker Compose stack on boot
 
-- Droplet (Ubuntu 24.04) with cloud-init user_data
-- DNS A + wildcard records
-- DigitalOcean firewall (ingress: 22,80,443)
-- Uploaded SSH public key
-- Caddy static site + vocab app via Docker Compose + systemd unit
-- Outputs: droplet_name, droplet_ip
+Cloud-init is idempotent. All Caddy assets live under `/opt/caddy/` on the droplet.
 
-Cloud-init (idempotent) configures: user `akash`, Docker + compose plugin, log rotation (json-file), fail2ban, unattended upgrades, UFW (22/80/443), Caddy assets under /opt/caddy, vocab app site snippet, systemd unit caddy-compose.service (Type=simple, Restart=on-failure).
+## Required inputs
 
-## Variables
+You must provide these two variables (everything else has sensible defaults — see `terraform/variables.tf`):
 
-| Name                | Description                                | Default                                       | Sensitive |
-| ------------------- | ------------------------------------------ | --------------------------------------------- | --------- |
-| digitalocean_token  | DO API token (pass via env)                | n/a                                           | yes       |
-| domain              | Apex domain (provisions root + wildcard A) | n/a                                           | no        |
-| name_prefix         | Base name for droplet (UUID suffix added)  | "do-vps"                                      | no        |
-| region              | DO region slug                             | "lon1"                                        | no        |
-| size                | Droplet size                               | "s-1vcpu-512mb-10gb"                          | no        |
-| image               | Base image                                 | "ubuntu-24-04-x64"                            | no        |
-| ssh_public_key_path | Path to local public key                   | "~/.ssh/id_rsa.pub"                           | no        |
-| dns_ttl             | TTL for A records                          | 1800                                          | no        |
-| caddy_image         | Prebuilt Caddy image with DO DNS module    | "ghcr.io/aceakash/caddy-digitalocean:2.10.0"  | no        |
-| username            | Login username provisioned by cloud-init   | "akash"                                       | no        |
-
-Local: droplet name = "${var.name_prefix}-${substr(uuid(),0,6)}" (new name each apply => replacements).
+- `digitalocean_token` — DO API token with DNS write + droplet create permissions (sensitive)
+- `domain` — apex domain to create records for (e.g. `untilfalse.com`)
 
 ## Quickstart
 
 ```bash
-# 0. Export token (or use TF_VAR_digitalocean_token)
+cd terraform
 export DIGITALOCEAN_TOKEN="<token>"
 
-# 1. Format + init + validate
-terraform fmt -recursive
 terraform init
-terraform validate
-
-# 2. Plan (substitute with your values)
 terraform plan \
   -var="digitalocean_token=$DIGITALOCEAN_TOKEN" \
-  -var="domain=untilfalse.com" \
-  -var="ssh_public_key_path=$HOME/.ssh/iuntilfalse_id_rsa.pub"
+  -var="domain=untilfalse.com"
 
-# 3. Apply (substitute with your values)
 terraform apply \
   -var="digitalocean_token=$DIGITALOCEAN_TOKEN" \
-  -var="domain=untilfalse.com" \
-  -var="ssh_public_key_path=$HOME/.ssh/iuntilfalse_id_rsa.pub"
+  -var="domain=untilfalse.com"
 ```
 
-Check outputs:
+Tip: set `TF_VAR_digitalocean_token` and `TF_VAR_domain` as environment variables to skip the `-var` flags.
+
+After apply, check outputs:
 
 ```bash
-terraform output
 terraform output -raw droplet_ip
 ```
 
-## Destroy
+## Validating changes
 
 ```bash
-terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=untilfalse.com"
+cd terraform
+terraform fmt -check -recursive
+terraform init -input=false -backend=false
+terraform validate
 ```
 
-## Caddy static site
+This is what CI runs on every push/PR touching `terraform/`.
 
-On boot, systemd runs caddy-compose.service (Type=simple, Restart=on-failure) to start the Caddy container serving untilfalse.com and www.untilfalse.com, plus the vocab app at vocab.untilfalse.com. TLS via DNS-01 with DigitalOcean.
+## On the droplet
 
-Status:
+Check Caddy is running:
 
 ```bash
 docker ps | grep caddy
 docker logs caddy | head -n 50
 ```
 
-## Token rotation
+### Token rotation
 
 ```bash
 sudo sed -i "s/^DIGITALOCEAN_TOKEN=.*/DIGITALOCEAN_TOKEN=<new_token>/" /opt/caddy/.env
 docker compose -f /opt/caddy/docker-compose.yml restart caddy
-# Optional force renew
+# Optional: force certificate renewal
 docker exec caddy caddy renew --force
 ```
+
+## Destroy
+
+```bash
+cd terraform
+terraform destroy \
+  -var="digitalocean_token=$DIGITALOCEAN_TOKEN" \
+  -var="domain=untilfalse.com"
+```
+
+## Adding a new app
+
+Wildcard DNS is already in place, so new subdomains don't require Terraform changes. To deploy a new app:
+
+1. Add a service to `/opt/caddy/docker-compose.yml` on the `proxy` network
+2. Add a Caddy site snippet to `/opt/caddy/sites/<app>.caddy`
+3. `docker compose pull <app> && docker compose up -d <app>`
+4. Reload Caddy: `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile`
+
+See `cicd.md` for the full GitHub Actions deployment pattern.

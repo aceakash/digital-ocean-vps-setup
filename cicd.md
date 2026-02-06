@@ -1,45 +1,37 @@
-# GitHub Actions Deployment Plan (vocab.untilfalse.com)
+# GitHub Actions Deployment Pattern
 
-This file documents a CI/CD pattern for deploying the vocab web app container and its Caddy route without modifying Terraform user_data (no droplet replacement). You will move this to the app repo.
+Reusable CI/CD pattern for deploying a containerized app behind Caddy on the droplet. Copy this to your app repo and substitute placeholders.
+
+## Placeholders
+
+| Placeholder | Example | Description |
+|---|---|---|
+| `<app>` | `vocab` | Short app name (used in service, file names) |
+| `<app>.untilfalse.com` | `vocab.untilfalse.com` | Subdomain |
+| `<org>/<app>` | `aceakash/vocab` | GHCR image path |
+| `<version>` | `0.1.0` | Semver tag |
+| `<internal-port>` | `8080` | Port the container listens on |
 
 ## Goals
 
 - Build & push image to GHCR.
-- Update (or create) Caddy site snippet.
-- Ensure vocab service exists in docker-compose.
+- Upload Caddy site snippet for the subdomain.
+- Ensure service exists in docker-compose.
 - Pull and run updated container.
 - Reload Caddy for new routing.
 - Keep process idempotent.
 
 ## Required Repository Secrets
 
-- DROPLET_HOST: Droplet IPv4.
-- DROPLET_USER: akash
-- DROPLET_SSH_KEY: Private key (PEM). Use a deploy key with least privilege.
-- GHCR_PAT: Personal access token with read:packages (and write if building here).
+- `DROPLET_HOST` — Droplet IPv4.
+- `DROPLET_USER` — `akash`
+- `DROPLET_SSH_KEY` — Private key (PEM). Use a deploy key with least privilege.
+- `GHCR_PAT` — Personal access token with `read:packages` (and `write:packages` if building here).
 
-Optional future secrets:
-
-- WATCHTOWER_WEBHOOK
-- SLACK_WEBHOOK_URL
-
-## Workflow Outline
-
-1. On push to main (app repo): build image, tag with SHA + semver (e.g. 0.1.0).
-2. Push image(s) to GHCR.
-3. Deploy job (SSH):
-   - Create /opt/caddy/sites if missing.
-   - Upload vocab.caddy.
-   - Append import directive to main Caddyfile if absent.
-   - Append vocab service block to docker-compose.yml if absent.
-   - docker compose pull vocab; docker compose up -d vocab.
-   - Reload Caddy.
-   - Health check.
-
-## Caddy Site Snippet (uploaded as /opt/caddy/sites/vocab.caddy)
+## Caddy Site Snippet (`/opt/caddy/sites/<app>.caddy`)
 
 ```caddy
-vocab.untilfalse.com {
+<app>.untilfalse.com {
     encode zstd gzip
     header {
         Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
@@ -48,9 +40,9 @@ vocab.untilfalse.com {
         Referrer-Policy "strict-origin-when-cross-origin"
         Content-Security-Policy "default-src 'self';"
     }
-    reverse_proxy vocab:8080
+    reverse_proxy <app>:<internal-port>
     log {
-        output file /var/log/caddy/vocab.access.log
+        output file /var/log/caddy/<app>.access.log
         format json
     }
 }
@@ -59,9 +51,9 @@ vocab.untilfalse.com {
 ## docker-compose.yml Service Block (append if missing)
 
 ```yaml
-vocab:
-  image: ghcr.io/aceakash/vocab:0.1.0
-  container_name: vocab
+<app>:
+  image: ghcr.io/<org>/<app>:<version>
+  container_name: <app>
   restart: unless-stopped
   networks:
     - proxy
@@ -74,7 +66,7 @@ vocab:
 ## Example Workflow (app repo)
 
 ```yaml
-name: Deploy vocab
+name: Deploy <app>
 
 on:
   push:
@@ -93,8 +85,8 @@ jobs:
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Set tags
         run: |
-          echo "IMAGE_SHA=ghcr.io/aceakash/vocab:${{ github.sha }}" >> $GITHUB_ENV
-          echo "IMAGE_SEMVER=ghcr.io/aceakash/vocab:0.1.0" >> $GITHUB_ENV
+          echo "IMAGE_SHA=ghcr.io/<org>/<app>:${{ github.sha }}" >> $GITHUB_ENV
+          echo "IMAGE_SEMVER=ghcr.io/<org>/<app>:<version>" >> $GITHUB_ENV
       - name: Build
         run: docker build -t $IMAGE_SHA -t $IMAGE_SEMVER .
       - name: Push
@@ -105,12 +97,12 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    concurrency: vocab-deploy
+    concurrency: <app>-deploy
     steps:
       - name: Generate site snippet
         run: |
-          cat > vocab.caddy <<'EOF'
-          vocab.untilfalse.com {
+          cat > <app>.caddy <<'EOF'
+          <app>.untilfalse.com {
               encode zstd gzip
               header {
                   Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
@@ -119,9 +111,9 @@ jobs:
                   Referrer-Policy "strict-origin-when-cross-origin"
                   Content-Security-Policy "default-src 'self';"
               }
-              reverse_proxy vocab:8080
+              reverse_proxy <app>:<internal-port>
               log {
-                  output file /var/log/caddy/vocab.access.log
+                  output file /var/log/caddy/<app>.access.log
                   format json
               }
           }
@@ -132,7 +124,7 @@ jobs:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
-          source: "vocab.caddy"
+          source: "<app>.caddy"
           target: "/opt/caddy/sites/"
       - name: Remote deploy
         uses: appleboy/ssh-action@v1.0.0
@@ -144,14 +136,14 @@ jobs:
             set -e
             cd /opt/caddy
             sudo mkdir -p sites
-            # Ensure import
+            # Ensure import directive exists
             grep -q '/opt/caddy/sites/*.caddy' Caddyfile || echo 'import /opt/caddy/sites/*.caddy' | sudo tee -a Caddyfile
             # Add service if missing
-            if ! grep -q '^vocab:' docker-compose.yml; then
+            if ! grep -q '^<app>:' docker-compose.yml; then
               sudo tee -a docker-compose.yml >/dev/null <<'YML'
-              vocab:
-                image: ghcr.io/aceakash/vocab:0.1.0
-                container_name: vocab
+              <app>:
+                image: ghcr.io/<org>/<app>:<version>
+                container_name: <app>
                 restart: unless-stopped
                 networks:
                   - proxy
@@ -161,26 +153,26 @@ jobs:
                   com.centurylinklabs.watchtower.enable: "true"
               YML
             fi
-            sudo docker compose pull vocab || true
-            sudo docker compose up -d vocab
+            sudo docker compose pull <app> || true
+            sudo docker compose up -d <app>
             sudo docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile || sudo docker compose restart caddy
-            curl -fsS https://vocab.untilfalse.com/health || echo "Health endpoint failed."
+            curl -fsS https://<app>.untilfalse.com/health || echo "Health endpoint failed."
 ```
 
 ## Health Check
 
-- Prefer /health returning 200.
+- Prefer `/health` returning 200.
 - Extend workflow to fail job if curl returns non-zero after retries.
 
 ## Rollback
 
-- Re-run deploy with previous semver tag (e.g. 0.1.0).
-- To remove route: delete vocab.caddy and reload Caddy.
-- To remove container: docker compose rm -f vocab.
+- Re-run deploy with previous semver tag.
+- To remove route: delete `<app>.caddy` and reload Caddy.
+- To remove container: `docker compose rm -f <app>`.
 
 ## Future Enhancements
 
 - Add Watchtower notifications.
 - Add structured log shipping.
-- Pin digest tags (image@sha256:...).
+- Pin digest tags (`image@sha256:...`).
 - Use caddy-docker-proxy to eliminate manual file writes (requires base change).
