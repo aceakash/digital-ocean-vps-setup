@@ -4,9 +4,11 @@ on:
   push:
     paths:
       - 'terraform/**'
+      - 'Makefile'
   pull_request:
     paths:
       - 'terraform/**'
+      - 'Makefile'
 
 jobs:
   fmt-validate:
@@ -20,14 +22,5 @@ jobs:
         with:
           terraform_version: '1.5.0'
 
-      - name: Terraform fmt (check)
-        run: terraform fmt -check -recursive
-        working-directory: ./terraform
-
-      - name: Terraform init
-        run: terraform init -input=false -backend=false
-        working-directory: ./terraform
-
-      - name: Terraform validate
-        run: terraform validate
-        working-directory: ./terraform
+      - name: Validate
+        run: make validate
