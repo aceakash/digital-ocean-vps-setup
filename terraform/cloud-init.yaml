@@ -32,7 +32,7 @@ write_files:
 
       (header_common) {
         header {
-          Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+          Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
           X-Frame-Options "DENY"
           X-Content-Type-Options "nosniff"
           Referrer-Policy "strict-origin-when-cross-origin"
@@ -147,8 +147,8 @@ write_files:
       #!/usr/bin/env bash
       set -euo pipefail
       if [ ! -f /opt/caddy/.env ]; then
-        echo "[caddy-compose-up] /opt/caddy/.env missing; skipping start."
-        exit 0
+        echo "[caddy-compose-up] /opt/caddy/.env missing; refusing to start."
+        exit 1
       fi
       echo "[caddy-compose-up] Starting Caddy + vocab compose stack..."
       /usr/bin/docker compose -f /opt/caddy/docker-compose.yml up -d
@@ -175,7 +175,7 @@ runcmd:
   - [ sh, -c, "set -eux" ]
   - [ sh, -c, "curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh" ]
   - [ sh, -c, "mkdir -p /etc/docker" ]
-  - [ sh, -c, "cat > /etc/docker/daemon.json <<'EOF'\n{ \"log-driver\": \"json-file\", \"log-opts\": { \"max-size\": \"10m\", \"max-file\": \"150\" } }\nEOF" ]
+  - [ sh, -c, "cat > /etc/docker/daemon.json <<'EOF'\n{ \"log-driver\": \"json-file\", \"log-opts\": { \"max-size\": \"10m\", \"max-file\": \"3\" } }\nEOF" ]
   - [ sh, -c, "systemctl enable --now docker" ]
   - [ sh, -c, "apt-get update && apt-get install -y docker-compose-plugin fail2ban unattended-upgrades" ]
   - [ sh, -c, "ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw --force enable" ]
