@@ -68,3 +68,4 @@ GitHub Actions workflow (`.github/workflows/terraform-validate.yml`) runs `fmt -
 - `.github/plan.md` — current project status and prioritized next steps.
 - `.github/functional-requirements.md` — locked architectural decisions.
 - `cicd.md` — CI/CD deployment pattern for external app containers.
+- `docs/instructions.md` — coding agent guardrails, workflow rules, and process conventions. Follow these on every interaction.
