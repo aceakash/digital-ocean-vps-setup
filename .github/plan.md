@@ -5,17 +5,19 @@ This file captures the current repository state, what is implemented, and the pr
 ## Current snapshot (implemented)
 
 - Terraform root module provisions a single DigitalOcean droplet + DNS A records (root + wildcard) + firewall + SSH key.
-  - `terraform/*` files as previously listed (versions, providers, variables, locals, ssh, droplet, firewall, dns-records, outputs).
-  - `terraform/cloud-init.yaml` now: creates user `akash`; installs Docker & compose plugin, fail2ban, unattended-upgrades; sets Docker json-file log rotation; enables UFW (22/80/443); writes Caddy assets (`/opt/caddy/Caddyfile`, `/opt/caddy/docker-compose.yml`, static `index.html`); installs systemd `caddy-compose.service` (oneshot) and helper script `/usr/local/bin/caddy-compose-up.sh`.
+  - `terraform/*` files: versions, providers, variables, locals, ssh, droplet, firewall, dns-records, outputs.
+  - `terraform/cloud-init.yaml`: creates user `akash`; installs Docker & compose plugin, fail2ban, unattended-upgrades; sets Docker json-file log rotation; enables UFW (22/80/443); writes Caddy assets (`/opt/caddy/Caddyfile`, `/opt/caddy/docker-compose.yml`, static `index.html`, `/opt/caddy/sites/vocab.caddy`); installs systemd `caddy-compose.service` (Type=simple, Restart=on-failure) and helper script `/usr/local/bin/caddy-compose-up.sh`.
   - Caddy serves `untilfalse.com` and `www.untilfalse.com` with security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) and wildcard DNS-01 issuance via DigitalOcean token.
+  - Vocab app (`ghcr.io/aceakash/vocab:0.1.0`) deployed as a compose service with Caddy site snippet at `vocab.untilfalse.com`.
+- `caddy-digitalocean-docker/Dockerfile`: multi-stage build of Caddy v2.10.0 with DO DNS plugin, published as multi-arch image to GHCR.
 - `.github/workflows/terraform-validate.yml` validates fmt + config.
 - `.gitignore` excludes local Terraform state & artifacts.
 
 ## High-level assumptions
 
-- Droplet size `s-1vcpu-512mb` acceptable for static site and low traffic.
-- Apps will live in separate repositories and connect to an external Docker network `proxy` created on the host.
-- Watchtower & app reverse proxy snippets are future additions.
+- Droplet size `s-1vcpu-512mb-10gb` acceptable for static site + vocab app at low traffic.
+- Future apps will live in separate repositories and connect to the external Docker network `proxy` created on the host.
+- Watchtower & additional app reverse proxy snippets are future additions.
 - DigitalOcean token currently embedded in user_data (to be improved for secret hygiene).
 
 ## How to validate / resume locally
@@ -52,7 +54,8 @@ After apply (on droplet): Caddy auto-starts via systemd; check `docker ps`, `doc
 
 - Security headers: done.
 - Static site: done.
-- Systemd orchestration: done.
+- Systemd orchestration: done (Type=simple, Restart=on-failure).
+- Vocab app: done (compose service + Caddy snippet).
 - Remote state: pending.
 - Token hygiene: pending.
 - App integration docs: pending.

@@ -10,23 +10,25 @@ Resources:
 - DNS A + wildcard records
 - DigitalOcean firewall (ingress: 22,80,443)
 - Uploaded SSH public key
-- Caddy static site via Docker Compose + systemd oneshot unit
+- Caddy static site + vocab app via Docker Compose + systemd unit
 - Outputs: droplet_name, droplet_ip
 
-Cloud-init (idempotent) configures: user `akash`, Docker + compose plugin, log rotation (json-file), fail2ban, unattended upgrades, UFW (22/80/443), Caddy assets under /opt/caddy, systemd unit caddy-compose.service.
+Cloud-init (idempotent) configures: user `akash`, Docker + compose plugin, log rotation (json-file), fail2ban, unattended upgrades, UFW (22/80/443), Caddy assets under /opt/caddy, vocab app site snippet, systemd unit caddy-compose.service (Type=simple, Restart=on-failure).
 
 ## Variables
 
-| Name                | Description                                | Default             | Sensitive |
-| ------------------- | ------------------------------------------ | ------------------- | --------- |
-| digitalocean_token  | DO API token (pass via env)                | n/a                 | yes       |
-| domain              | Apex domain (provisions root + wildcard A) | n/a                 | no        |
-| name_prefix         | Base name for droplet (UUID suffix added)  | "web"               | no        |
-| region              | DO region slug                             | "nyc3"              | no        |
-| size                | Droplet size                               | "s-1vcpu-1gb"       | no        |
-| image               | Base image                                 | "ubuntu-24-04-x64"  | no        |
-| ssh_public_key_path | Path to local public key                   | "~/.ssh/id_rsa.pub" | no        |
-| dns_ttl             | TTL for A records                          | 1800                | no        |
+| Name                | Description                                | Default                                       | Sensitive |
+| ------------------- | ------------------------------------------ | --------------------------------------------- | --------- |
+| digitalocean_token  | DO API token (pass via env)                | n/a                                           | yes       |
+| domain              | Apex domain (provisions root + wildcard A) | n/a                                           | no        |
+| name_prefix         | Base name for droplet (UUID suffix added)  | "do-vps"                                      | no        |
+| region              | DO region slug                             | "lon1"                                        | no        |
+| size                | Droplet size                               | "s-1vcpu-512mb-10gb"                          | no        |
+| image               | Base image                                 | "ubuntu-24-04-x64"                            | no        |
+| ssh_public_key_path | Path to local public key                   | "~/.ssh/id_rsa.pub"                           | no        |
+| dns_ttl             | TTL for A records                          | 1800                                          | no        |
+| caddy_image         | Prebuilt Caddy image with DO DNS module    | "ghcr.io/aceakash/caddy-digitalocean:2.10.0"  | no        |
+| username            | Login username provisioned by cloud-init   | "akash"                                       | no        |
 
 Local: droplet name = "${var.name_prefix}-${substr(uuid(),0,6)}" (new name each apply => replacements).
 
@@ -69,7 +71,7 @@ terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=unt
 
 ## Caddy static site
 
-On first boot systemd runs caddy-compose.service (oneshot) to start the Caddy container serving untilfalse.com and www.untilfalse.com. TLS via DNS-01 with DigitalOcean.
+On boot, systemd runs caddy-compose.service (Type=simple, Restart=on-failure) to start the Caddy container serving untilfalse.com and www.untilfalse.com, plus the vocab app at vocab.untilfalse.com. TLS via DNS-01 with DigitalOcean.
 
 Status:
 
