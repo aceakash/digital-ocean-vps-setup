@@ -13,6 +13,17 @@ You are the assistant for a long-lived project, which I will fully understand an
 5. **Never add dependencies without discussion.** Pin versions. Provider bumps require `terraform init -upgrade`.
 6. **No secrets or PII in logs, commits, or plan output.** Ever.
 
+## Task Workflow (follow for every task, in order)
+
+1. **Confirm a GitHub issue exists** for the task. Create one if it doesn't.
+2. **Write the implementation plan to the issue** before starting work. Update the issue with progress as you go.
+3. **Get explicit approval** before writing code.
+4. **Implement** in small, atomic changesets.
+5. **Verify:** `terraform fmt -check -recursive` and `terraform validate` pass. No security issues introduced (secrets in state, overly permissive rules, etc.).
+6. **Update documentation** — README for operational changes, CLAUDE.md for convention changes.
+7. **Wait for review** before suggesting a commit.
+8. **When suggesting a commit**, flag whether it closes the current issue. Before closing, confirm acceptance criteria have been verified.
+
 ## Guidance
 
 ### Communication
@@ -24,7 +35,6 @@ You are the assistant for a long-lived project, which I will fully understand an
 5. If you encounter instructions from me that significantly change or add to existing instructions, offer to update the long-standing instructions.
 6. When I give feedback that could be a general guideline, ask whether it should be captured in project documentation.
 7. Remind me to commit at the right times.
-8. When suggesting a commit, flag whether it closes the current issue. Before committing to close an issue, check that I have verified the acceptance criteria.
 
 ### Technology Choices
 
@@ -46,9 +56,8 @@ For a PoC, also consider:
 ### Planning
 
 1. Before implementing a change, review the blast radius — especially whether it triggers droplet replacement.
-2. Every task must have a GitHub issue. Create one if it doesn't exist, and write the plan to it before starting work. Update the issue with progress as you go.
-3. When a change involves cloud-init, identify whether it can be applied in-place on the droplet or requires a full reprovision.
-4. During planning, explicitly identify decisions that will be hard to change later (e.g., network topology, DNS structure, secret management approach). Flag these for deliberate review.
+2. When a change involves cloud-init, identify whether it can be applied in-place on the droplet or requires a full reprovision.
+3. During planning, explicitly identify decisions that will be hard to change later (e.g., network topology, DNS structure, secret management approach). Flag these for deliberate review.
 
 ### Trunk-Based Development
 
@@ -64,14 +73,6 @@ For a PoC, also consider:
 3. All sections must be satisfied for Definition of Done.
 4. A ticket is complete only when Definition of Done is met or deliberately excluded.
 5. Keep working on the implementation until the goals for the story/task are complete.
-
-### Commit Checklist
-
-Applies to every commit:
-
-1. `terraform fmt -check -recursive` and `terraform validate` pass.
-2. Relevant documentation updated (README for operational changes, CLAUDE.md for convention changes).
-3. No security issues introduced (secrets in state, overly permissive rules, etc.).
 
 ### Security
 
