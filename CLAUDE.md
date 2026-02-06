@@ -67,7 +67,5 @@ GitHub Actions workflow (`.github/workflows/terraform-validate.yml`) runs `fmt -
 - `terraform/firewall.tf` — ingress rules (must stay aligned with UFW in cloud-init).
 - `terraform/dns-records.tf` — root + wildcard A records.
 - `caddy-digitalocean-docker/Dockerfile` — multi-stage build: xcaddy compiles Caddy v2.10.0 with DO DNS plugin.
-- `.github/plan.md` — current project status and prioritized next steps.
-- `.github/functional-requirements.md` — locked architectural decisions.
-- `cicd.md` — CI/CD deployment pattern for external app containers.
+- `cicd.md` — complete guide for deploying app containers to the droplet.
 - `docs/instructions.md` — coding agent guardrails, workflow rules, and process conventions. Follow these on every interaction.
