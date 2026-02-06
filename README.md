@@ -31,6 +31,18 @@ terraform plan
 terraform apply
 ```
 
+Or use the Makefile from the repo root:
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your token and domain
+cd ..
+
+make plan
+make apply
+```
+
 Or pass variables directly:
 
 ```bash
@@ -64,6 +76,12 @@ ssh akash@$IP sudo cat /var/log/cloud-init-output.log
 ```
 
 ## Validating changes
+
+```bash
+make validate
+```
+
+Or manually:
 
 ```bash
 cd terraform

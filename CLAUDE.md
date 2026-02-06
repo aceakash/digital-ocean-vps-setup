@@ -18,31 +18,26 @@ External apps are deployed independently to `/opt/apps/<app>/` with their own co
 
 ## Common Commands
 
-All Terraform commands run from the `terraform/` directory.
+A top-level `Makefile` wraps Terraform commands so they can be run from the repo root:
 
 ```bash
-# Validate (what CI runs)
+make validate   # fmt-check + init + validate (default target, mirrors CI)
+make fmt        # auto-fix formatting
+make plan       # terraform plan (runs init first)
+make apply      # terraform apply (runs init first)
+make destroy    # terraform destroy (runs init first)
+```
+
+Or run Terraform directly from the `terraform/` directory:
+
+```bash
 cd terraform
 terraform fmt -check -recursive
 terraform init -input=false -backend=false
 terraform validate
-
-# Format
-terraform fmt -recursive
-
-# Plan
-export DIGITALOCEAN_TOKEN="<token>"
-terraform init
-terraform plan -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
-
-# Apply
-terraform apply -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
-
-# Destroy
-terraform destroy -var="digitalocean_token=$DIGITALOCEAN_TOKEN" -var="domain=example.com"
 ```
 
-Alternative: set `TF_VAR_digitalocean_token` and `TF_VAR_domain` environment variables to skip `-var` flags.
+Variables are supplied via `terraform.tfvars` or environment variables (`TF_VAR_digitalocean_token`, `TF_VAR_domain`).
 
 ## CI
 
@@ -62,6 +57,7 @@ GitHub Actions workflow (`.github/workflows/terraform-validate.yml`) runs `fmt -
 
 ## Key Files
 
+- `Makefile` — top-level Make targets wrapping Terraform commands (validate, fmt, plan, apply, destroy).
 - `terraform/cloud-init.yaml` — droplet bootstrap (user, Docker, Caddy assets under `/opt/caddy/`, systemd unit, hardening). This is the most complex file; changes here replace the droplet.
 - `terraform/droplet.tf` — droplet resource; injects cloud-init via `templatefile()`.
 - `terraform/firewall.tf` — ingress rules (must stay aligned with UFW in cloud-init).
