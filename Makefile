@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check init validate plan apply destroy
+.PHONY: fmt fmt-check init validate plan apply destroy clean
 
 .DEFAULT_GOAL := validate
 
@@ -23,3 +23,6 @@ apply: init
 
 destroy: init
 	cd terraform && terraform destroy
+
+clean:
+	rm -rf terraform/.terraform terraform/.terraform.lock.hcl terraform/terraform.tfstate*

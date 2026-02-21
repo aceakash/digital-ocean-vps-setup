@@ -1,29 +1,29 @@
-variable "digitalocean_token" {
-  description = "DigitalOcean API token with DNS write / droplet create permissions"
+variable "hcloud_token" {
+  description = "Hetzner Cloud API token"
   type        = string
   sensitive   = true
 }
 
-variable "region" {
-  description = "DigitalOcean region"
+variable "location" {
+  description = "Hetzner Cloud location"
   type        = string
-  default     = "lon1"
+  default     = "fsn1"
 }
 
-variable "size" {
-  description = "Droplet size slug"
+variable "server_type" {
+  description = "Hetzner Cloud server type slug"
   type        = string
-  default     = "s-1vcpu-512mb-10gb"
+  default     = "cx22"
 }
 
 variable "image" {
-  description = "Droplet image"
+  description = "Server image"
   type        = string
-  default     = "ubuntu-24-04-x64"
+  default     = "ubuntu-24.04"
 }
 
 variable "ssh_key_name" {
-  description = "Name of an existing SSH key in your DigitalOcean account"
+  description = "Name of an existing SSH key in your Hetzner Cloud account"
   type        = string
 }
 
@@ -41,13 +41,7 @@ variable "dns_ttl" {
 variable "name_prefix" {
   description = "Name prefix for created resources"
   type        = string
-  default     = "do-vps"
-}
-
-variable "caddy_image" {
-  description = "Prebuilt Caddy image with DO DNS module"
-  type        = string
-  default     = "ghcr.io/aceakash/caddy-digitalocean:2.10.0"
+  default     = "vps"
 }
 
 variable "username" {

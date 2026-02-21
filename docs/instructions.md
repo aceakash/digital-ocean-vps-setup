@@ -55,8 +55,8 @@ For a PoC, also consider:
 
 ### Planning
 
-1. Before implementing a change, review the blast radius — especially whether it triggers droplet replacement.
-2. When a change involves cloud-init, identify whether it can be applied in-place on the droplet or requires a full reprovision.
+1. Before implementing a change, review the blast radius — especially whether it triggers server replacement.
+2. When a change involves cloud-init, identify whether it can be applied in-place on the server or requires a full reprovision.
 3. During planning, explicitly identify decisions that will be hard to change later (e.g., network topology, DNS structure, secret management approach). Flag these for deliberate review.
 
 ### Trunk-Based Development
@@ -79,7 +79,6 @@ For a PoC, also consider:
 1. Least-privilege access. Firewall rules and IAM scoped to what's needed.
 2. Configuration via environment variables or files, validated at startup.
 3. Keep secrets out of cloud-init user_data (target state).
-4. Review security headers and TLS configuration when changing Caddy config.
 
 ## Style
 

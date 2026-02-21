@@ -1,9 +1,14 @@
-output "droplet_ip" {
-  description = "Droplet IPv4 address"
-  value       = digitalocean_droplet.vps.ipv4_address
+output "server_ip" {
+  description = "Server IPv4 address"
+  value       = hcloud_server.vps.ipv4_address
 }
 
-output "droplet_name" {
-  description = "Droplet name"
-  value       = digitalocean_droplet.vps.name
+output "server_name" {
+  description = "Server name"
+  value       = hcloud_server.vps.name
+}
+
+output "coolify_url" {
+  description = "Coolify dashboard URL"
+  value       = "http://${hcloud_server.vps.ipv4_address}:8000"
 }
