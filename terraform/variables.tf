@@ -7,13 +7,13 @@ variable "hcloud_token" {
 variable "location" {
   description = "Hetzner Cloud location"
   type        = string
-  default     = "fsn1"
+  default     = "nbg1"
 }
 
 variable "server_type" {
   description = "Hetzner Cloud server type slug"
   type        = string
-  default     = "cx22"
+  default     = "cx23"
 }
 
 variable "image" {

@@ -46,6 +46,7 @@ GitHub Actions workflow (`.github/workflows/terraform-validate.yml`) runs `fmt -
 - **Cloud-init commands must be idempotent**.
 - **Secrets**: Hetzner token is marked `sensitive` in `variables.tf`.
 - **Naming**: `var.name_prefix` is used consistently for all resource names.
+- **Defaults**: `location = "nbg1"` (Nuremberg), `server_type = "cx23"` (2 vCPU / 4 GB).
 - **New variables**: add to `variables.tf`, reference in resources, document in copilot instructions.
 - **Version pins**: Terraform >= 1.5.0, hcloud provider ~> 1.60 (see `versions.tf`). Bumps require `terraform init -upgrade`.
 - Always confirm with the user before making changes. Make small, incremental changes.
