@@ -4,5 +4,5 @@ domain       = "example.com"
 ssh_key_name = ""  # Name of an existing SSH key in your Hetzner Cloud account
 
 # Optional — uncomment to override defaults
-# location    = "fsn1"
-# server_type = "cx22"
+# location    = "nbg1"
+# server_type = "cx23"

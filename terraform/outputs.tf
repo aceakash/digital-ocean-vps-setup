@@ -10,5 +10,5 @@ output "server_name" {
 
 output "coolify_url" {
   description = "Coolify dashboard URL"
-  value       = "http://${hcloud_server.vps.ipv4_address}:8000"
+  value       = "https://coolify.${var.domain}"
 }
