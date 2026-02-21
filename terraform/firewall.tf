@@ -26,14 +26,6 @@ resource "hcloud_firewall" "vps_fw" {
   }
 
   rule {
-    description = "Coolify dashboard"
-    direction   = "in"
-    protocol    = "tcp"
-    port        = "8000"
-    source_ips  = ["0.0.0.0/0", "::/0"]
-  }
-
-  rule {
     description = "Coolify websocket"
     direction   = "in"
     protocol    = "tcp"

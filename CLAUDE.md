@@ -10,7 +10,7 @@ Repeatable Terraform setup for a single Hetzner Cloud server running Coolify —
 
 ## Architecture
 
-Single Terraform root module (`terraform/`) provisions: Ubuntu 24.04 Hetzner server, DNS zone with A + wildcard records, Hetzner firewall (22/80/443/8000/6001/6002), SSH key. Cloud-init (`cloud-init.yaml`) bootstraps the server with user `akash`, fail2ban, unattended upgrades, and the Coolify install script. Coolify handles Docker installation, reverse proxy, SSL certificates, and app deployments.
+Single Terraform root module (`terraform/`) provisions: Ubuntu 24.04 Hetzner server, DNS zone with A + wildcard records, Hetzner firewall (22/80/443/6001/6002), SSH key. Cloud-init (`cloud-init.yaml`) bootstraps the server with user `akash`, fail2ban, unattended upgrades, and the Coolify install script. Coolify handles Docker installation, reverse proxy, SSL certificates, and app deployments.
 
 ## Common Commands
 
